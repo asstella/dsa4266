@@ -1,0 +1,5 @@
+# Ignore saved models in this folder
+trained_model/
+
+# Ignore -checkpoint.py files, can open the .py as notebook on jupyter
+*-checkpoint.py
