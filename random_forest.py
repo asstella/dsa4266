@@ -20,13 +20,13 @@
 # In this notebook, we preprocess the dataset `final_df.pkl` for training machine learning models on network intrusion malware classification. We'll perform feature engineering, handle high-cardinality categorical variables, and prepare the data for model training.
 
 # %%
+from category_encoders import TargetEncoder
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
-from category_encoders import TargetEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 import warnings
@@ -53,14 +53,36 @@ constant_columns = [col for col in df.columns if df[col].nunique() == 1]
 df.drop(columns=constant_columns, inplace=True)
 print(f"Dropped constant columns: {constant_columns}")
 
+# additional cols 
+cols_to_drop = ['http.request.full_uri']# , 'ip.src_host', 'ip.dst_host', 'arp.dst.proto_ipv4', 'arp.src.proto_ipv4' , 'tcp.srcport', 'tcp.dstport']
+df.drop(columns=cols_to_drop, inplace=True)
+print(f"Dropped columns: {cols_to_drop}")
+
 # %% [markdown]
 # ## Drop Unnecessary Columns
 
 # %%
 # Drop raw byte columns that are not useful for analysis
-raw_byte_columns = ['tcp.options', 'tcp.payload', 'tcp.checksum', 'mqtt.msg', 'http.file_data']
-df.drop(columns=raw_byte_columns, inplace=True)
-print(f"Dropped raw byte columns: {raw_byte_columns}")
+
+# Replace '0' with empty strings in specific columns and calculate string lengths
+df['http.file_data'] = df['http.file_data'].replace('0', '').astype(str)
+df['http.request.uri.query'] = df['http.request.uri.query'].replace('0', '').astype(str)
+df['http.request.version'] = df['http.request.version'].replace('0', '').astype(str)
+df['mqtt.msg'] = df['mqtt.msg'].replace('0', '').astype(str)
+df['tcp.payload'] = df['tcp.payload'].replace('0', '').astype(str)
+df['tcp.options'] = df['tcp.options'].replace('0', '').astype(str)
+
+# Convert columns to length of each string as numerical values
+df['http.file_data'] = df['http.file_data'].apply(len)
+df['http.request.uri.query'] = df['http.request.uri.query'].apply(len)
+df['http.request.version'] = df['http.request.version'].apply(len)
+df['mqtt.msg'] = df['mqtt.msg'].apply(len)
+df['tcp.payload'] = df['tcp.payload'].apply(len)
+df['tcp.options'] = df['tcp.options'].apply(len)
+
+# raw_byte_columns = ['tcp.payload']
+# df.drop(columns=raw_byte_columns, inplace=True)
+# print(f"Dropped raw byte columns: {raw_byte_columns}")
 
 # Drop TCP flags column (assuming flags have been processed or are not needed)
 flag_columns = ['tcp.flags']
@@ -79,7 +101,7 @@ if 'Attack_label' in df.columns:
 
 # %%
 # Convert specific columns to numeric where applicable
-convert_to_num_columns = ['tcp.srcport', 'arp.opcode', 'icmp.checksum']
+convert_to_num_columns = ['arp.opcode', 'icmp.checksum', 'tcp.checksum']
 df[convert_to_num_columns] = df[convert_to_num_columns].apply(pd.to_numeric, errors='coerce')
 
 # %% [markdown]
@@ -119,8 +141,10 @@ print(f"Parsed columns: {cols_to_parse}")
 categorical_columns = [
     'ip.src_host', 'ip.dst_host',
     'arp.dst.proto_ipv4', 'arp.src.proto_ipv4',
-    'http.request.uri.query', 'http.request.method', 'http.referer',
-    'http.request.full_uri', 'http.request.version', 'http.response',
+    'tcp.srcport', 'tcp.dstport',
+    'http.request.method', 'http.referer',
+    # 'http.request.full_uri',
+    'http.response',
     'mqtt.protoname', 'mqtt.topic'
 ]
 
